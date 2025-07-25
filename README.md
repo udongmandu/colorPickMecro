@@ -2,6 +2,7 @@
 
 컬러인식 매크로 V2
 
+<img width="772" height="409" alt="image" src="https://github.com/user-attachments/assets/c896ac69-6db2-4fe8-a7a5-712456f1f918" />
 
 
 # 취케팅 색상 인식 자동 클릭 매크로
