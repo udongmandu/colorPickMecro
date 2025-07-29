@@ -12,6 +12,34 @@ import keyboard  # pip install keyboard
 
 ctypes.windll.user32.SetProcessDPIAware()
 
+# =========================== 폰트 자동 설정 ===========================
+def get_dpi_scaling():
+    root = tk.Tk()
+    scaling = root.tk.call('tk', 'scaling')
+    root.destroy()
+    return scaling  # 1.0: 100%, 1.5: 150% 등
+
+def get_resolution():
+    user32 = ctypes.windll.user32
+    screensize = (user32.GetSystemMetrics(0), user32.GetSystemMetrics(1))
+    return screensize  # (width, height)
+
+def calc_fontsize_by_env():
+    width, height = get_resolution()
+    scaling = get_dpi_scaling()
+    # QHD 이상은 크게
+    if width >= 2560 or height >= 1440:
+        return 14
+    else:
+        return 11
+
+FONT_SIZE = calc_fontsize_by_env()
+BASE_FONT = ("맑은 고딕", FONT_SIZE)
+BOLD_FONT = ("맑은 고딕", FONT_SIZE, "bold")
+SMALL_FONT = ("맑은 고딕", max(FONT_SIZE-2, 8))
+
+# =====================================================================
+
 class Overlay(tk.Tk):
     def __init__(self, x, y, width, height,
                  border_color="blue", border_width=4,
@@ -31,7 +59,10 @@ class Overlay(tk.Tk):
 
         self.target_color = (255, 0, 0)
         self.second_click_pos = (x + width // 2, y + height // 2)
-        self.panel_width = 275
+        if(FONT_SIZE == 14) : 
+            self.panel_width = 400
+        else :
+            self.panel_width = 325
         self.interval = 0.1
         self.tolerance = 40
         self.running = False
@@ -58,7 +89,6 @@ class Overlay(tk.Tk):
         keyboard.add_hotkey('ctrl+q', self._emergency_stop_from_global)
 
     def _toggle_repeat_from_global(self):
-        # tkinter 루프 안전 호출
         self.after(0, self._toggle_repeat_noevent)
 
     def _toggle_repeat_noevent(self):
@@ -75,7 +105,6 @@ class Overlay(tk.Tk):
             self._stop_repeat_click()
 
     def _emergency_stop_from_global(self):
-        # 색감지 멈추고 반복 멈춤
         self.after(0, self._emergency_stop)
 
     def _emergency_stop(self):
@@ -85,7 +114,7 @@ class Overlay(tk.Tk):
         self._update_btn_colors()
         print("<< 전체 중지 (Ctrl+Q)>>")
 
-    # =========================== 컨트롤 패널, UI 부분 ============================
+    # ===================== 컨트롤 패널, UI 부분 ======================
     def _make_title_bar(self, title):
         bar = tk.Frame(self, bg="#444")
         bar.pack(fill="x")
@@ -96,11 +125,11 @@ class Overlay(tk.Tk):
             text=title,
             bg="#444",
             fg="#ffffff",
-            font=("맑은 고딕", 12, "bold"),
+            font=BOLD_FONT,
             pady=4
         ).pack(side="left", padx=8)
         tk.Button(bar, text="✕", bg="#444", fg="white", bd=0,
-                font=("맑은 고딕", 12),
+                font=BOLD_FONT,
                 command=self.close_app)\
             .pack(side="right", padx=8)
 
@@ -128,14 +157,14 @@ class Overlay(tk.Tk):
         self.btn_frame = tk.Frame(self.panel, bg="#f6f7fa")
         self.btn_frame.pack(pady=(0,0), padx=10, fill="x")
 
-        self.repeat_label = tk.Label(self.btn_frame, text="반복", width=4, font=("맑은 고딕", 10, "bold"),
+        self.repeat_label = tk.Label(self.btn_frame, text="반복", width=4, font=BOLD_FONT,
                                     fg="white", bg="#fc4141")
         self.repeat_label.pack(side="left", padx=(0,7))
 
         self.start_btn = tk.Button(self.btn_frame, text="Start", command=self.start_monitor,
-                                   bg="#42d784", fg="white", bd=0, relief="ridge", width=7)
+                                   bg="#42d784", fg="white", bd=0, relief="ridge", width=7, font=BASE_FONT)
         self.stop_btn  = tk.Button(self.btn_frame, text="Stop",  command=self.stop_monitor,
-                                   bg="#dddddd", fg="#888888", bd=0, relief="ridge", width=7)
+                                   bg="#dddddd", fg="#888888", bd=0, relief="ridge", width=7, font=BASE_FONT)
         self.start_btn.pack(side="left", padx=(0, 5))
         self.stop_btn.pack(side="left")
         self._update_btn_colors()
@@ -143,69 +172,69 @@ class Overlay(tk.Tk):
         # ── 반복 클릭 구간: 한 줄 (X Y 주기) ────────────────────────
         repeat_frame = tk.Frame(self.panel, bg="#f6f7fa")
         repeat_frame.pack(pady=(4, 0), padx=10, fill="x")
-        tk.Label(repeat_frame, text="X", bg="#f6f7fa").grid(row=0, column=0)
+        tk.Label(repeat_frame, text="X", bg="#f6f7fa", font=BASE_FONT).grid(row=0, column=0)
         self.rep_x_var = tk.IntVar(value=self.repeat_pos[0])
-        tk.Entry(repeat_frame, textvariable=self.rep_x_var, width=6, justify="center", bg="white").grid(row=0, column=1, padx=(0,3))
-        tk.Label(repeat_frame, text="Y", bg="#f6f7fa").grid(row=0, column=2)
+        tk.Entry(repeat_frame, textvariable=self.rep_x_var, width=6, justify="center", bg="white", font=BASE_FONT).grid(row=0, column=1, padx=(0,3))
+        tk.Label(repeat_frame, text="Y", bg="#f6f7fa", font=BASE_FONT).grid(row=0, column=2)
         self.rep_y_var = tk.IntVar(value=self.repeat_pos[1])
-        tk.Entry(repeat_frame, textvariable=self.rep_y_var, width=6, justify="center", bg="white").grid(row=0, column=3, padx=(0,5))
-        tk.Label(repeat_frame, text="주기(초)", bg="#f6f7fa").grid(row=0, column=4)
+        tk.Entry(repeat_frame, textvariable=self.rep_y_var, width=6, justify="center", bg="white", font=BASE_FONT).grid(row=0, column=3, padx=(0,5))
+        tk.Label(repeat_frame, text="주기(초)", bg="#f6f7fa", font=BASE_FONT).grid(row=0, column=4)
         self.repeat_interval_var = tk.DoubleVar(value=self.repeat_interval)
-        tk.Entry(repeat_frame, textvariable=self.repeat_interval_var, width=6, justify="center", bg="white").grid(row=0, column=5)
-        tk.Label(repeat_frame, text="(PageDown: 좌표, PageUp: On/Off)", bg="#f6f7fa", fg="#2167ce", font=("Segoe UI",8,"bold")).grid(row=1, column=0, columnspan=6, sticky="w", pady=(2,0))
+        tk.Entry(repeat_frame, textvariable=self.repeat_interval_var, width=6, justify="center", bg="white", font=BASE_FONT).grid(row=0, column=5)
+        tk.Label(repeat_frame, text="(PageDown: 좌표, PageUp: On/Off)", bg="#f6f7fa", fg="#2167ce", font=SMALL_FONT).grid(row=1, column=0, columnspan=6, sticky="w", pady=(2,0))
 
-        #------------ 중지 설명
+        # ------------ 중지 설명
         tol_frame = tk.Frame(self.panel, bg="#f6f7fa")
         tol_frame.pack(pady=8, padx=10, fill="x")
         row = tk.Frame(tol_frame, bg="#f6f7fa")
         row.pack(fill="x")
-        tk.Label(tol_frame, text="반복은 시작 시에 ON 가능", bg="#f6f7fa", anchor="w", fg="#2167ce", font=("Segoe UI",8,"bold")).pack(anchor="w", pady=(2,0))
-        tk.Label(tol_frame, text="Ctrl + Q : 강제 중지", bg="#f6f7fa", anchor="w", fg="#ff2a00").pack(anchor="w", pady=(2,0))
+        tk.Label(tol_frame, text="반복은 시작 시에 ON 가능", bg="#f6f7fa", anchor="w", fg="#2167ce", font=SMALL_FONT).pack(anchor="w", pady=(2,0))
+        tk.Label(tol_frame, text="Ctrl + Q : 강제 중지", bg="#f6f7fa", anchor="w", fg="#ff2a00", font=SMALL_FONT).pack(anchor="w", pady=(2,0))
 
         # ── 나머지(구분선/색상/좌표/간격/허용오차 등) ────────────
         sep = tk.Frame(self.panel, height=2, bg="#e1e2e3")
         sep.pack(fill="x", pady=(12, 6), padx=4)
         color_frame = tk.Frame(self.panel, bg="#f6f7fa")
         color_frame.pack(pady=(16,8), padx=10, fill="x")
-        tk.Label(color_frame, text="색상", bg="#f6f7fa", anchor="w").pack(side="left")
+        tk.Label(color_frame, text="색상", bg="#f6f7fa", anchor="w", font=BASE_FONT).pack(side="left")
         self.preview = tk.Label(color_frame, bg=self._hex(), width=2, height=1, relief="solid", bd=1)
         self.preview.pack(side="left", padx=(8,3))
         self.hex_var = tk.StringVar(value=self._hex())
         self.hex_var.trace_add('write', self._on_hex_change)
-        tk.Entry(color_frame, width=8, textvariable=self.hex_var, justify="center", font=("Consolas", 10), bg="white").pack(side="left", padx=(0, 3))
-        tk.Button(color_frame, text="🎨", width=2, command=self._pick_color, bg="#eaf0fa", bd=0, relief="ridge").pack(side="left")
-        tk.Label(color_frame, text="(HOME)", bg="#f6f7fa", fg="#2167ce", font=("Segoe UI",8,"bold")).pack(side="left", padx=(6,0))
+        tk.Entry(color_frame, width=8, textvariable=self.hex_var, justify="center", font=("Consolas", FONT_SIZE), bg="white").pack(side="left", padx=(0, 3))
+        tk.Button(color_frame, text="🎨", width=2, command=self._pick_color, bg="#eaf0fa", bd=0, relief="ridge", font=SMALL_FONT).pack(side="left")
+        tk.Label(color_frame, text="(HOME)", bg="#f6f7fa", fg="#2167ce", font=SMALL_FONT).pack(side="left", padx=(6,0))
 
         coord_frame = tk.Frame(self.panel, bg="#f6f7fa")
-        coord_frame.pack(pady=8, padx=10, fill="x", )
-        tk.Label(coord_frame, text="좌표", bg="#f6f7fa", anchor="w").pack(side="left")
+        coord_frame.pack(pady=8, padx=10, fill="x")
+        tk.Label(coord_frame, text="좌표", bg="#f6f7fa", anchor="w", font=BASE_FONT).pack(side="left")
         self.x_var = tk.IntVar(value=self.second_click_pos[0])
         self.y_var = tk.IntVar(value=self.second_click_pos[1])
         self.x_var.trace_add('write', lambda *a: self._update_second_click())
         self.y_var.trace_add('write', lambda *a: self._update_second_click())
-        tk.Label(coord_frame, text="X", bg="#f6f7fa").pack(side="left", padx=(8,0))
-        tk.Entry(coord_frame, width=6, textvariable=self.x_var, justify="center", bg="white").pack(side="left", padx=(0, 3))
-        tk.Label(coord_frame, text="Y", bg="#f6f7fa").pack(side="left")
-        tk.Entry(coord_frame, width=6, textvariable=self.y_var, justify="center", bg="white").pack(side="left", padx=(0, 3))
-        tk.Label(coord_frame, text="(END)", bg="#f6f7fa", fg="#2167ce", font=("Segoe UI",8,"bold")).pack(side="left", padx=(2,0))
+        tk.Label(coord_frame, text="X", bg="#f6f7fa", font=BASE_FONT).pack(side="left", padx=(8,0))
+        tk.Entry(coord_frame, width=6, textvariable=self.x_var, justify="center", bg="white", font=BASE_FONT).pack(side="left", padx=(0, 3))
+        tk.Label(coord_frame, text="Y", bg="#f6f7fa", font=BASE_FONT).pack(side="left")
+        tk.Entry(coord_frame, width=6, textvariable=self.y_var, justify="center", bg="white", font=BASE_FONT).pack(side="left", padx=(0, 3))
+        tk.Label(coord_frame, text="(END)", bg="#f6f7fa", fg="#2167ce", font=SMALL_FONT).pack(side="left", padx=(2,0))
 
         interval_frame = tk.Frame(self.panel, bg="#f6f7fa")
         interval_frame.pack(pady=8, padx=10, fill="x")
-        tk.Label(interval_frame, text="간격(초)", bg="#f6f7fa", anchor="w").pack(side="left")
+        tk.Label(interval_frame, text="간격(초)", bg="#f6f7fa", anchor="w", font=BASE_FONT).pack(side="left")
         self.int_var = tk.DoubleVar(value=self.interval)
         self.int_var.trace_add('write', lambda *a: self._update_interval())
-        tk.Entry(interval_frame, width=6, textvariable=self.int_var, justify="center", bg="white").pack(side="left", padx=(8,0))
+        tk.Entry(interval_frame, width=6, textvariable=self.int_var, justify="center", bg="white", font=BASE_FONT).pack(side="left", padx=(8,0))
 
-        tol_frame = tk.Frame(self.panel, bg="#f6f7fa")
-        tol_frame.pack(pady=8, padx=10, fill="x")
-        row = tk.Frame(tol_frame, bg="#f6f7fa")
+        tol_frame2 = tk.Frame(self.panel, bg="#f6f7fa")
+        tol_frame2.pack(pady=8, padx=10, fill="x")
+        row = tk.Frame(tol_frame2, bg="#f6f7fa")
         row.pack(fill="x")
-        tk.Label(row, text="허용오차", bg="#f6f7fa", anchor="w").pack(side="left")
+        tk.Label(row, text="허용오차", bg="#f6f7fa", anchor="w", font=BASE_FONT).pack(side="left")
         self.tol_var = tk.IntVar(value=self.tolerance)
         self.tol_var.trace_add('write', lambda *a: self._update_tolerance())
-        tk.Entry(row, width=6, textvariable=self.tol_var, justify="center", bg="white").pack(side="left", padx=(8,0))
-        tk.Label(tol_frame, text="80까지 정도만 추천", bg="#f6f7fa", anchor="w", fg="#2167ce").pack(anchor="w", pady=(2,0))
-        tk.Label(tol_frame, text="배경이 투명이라 설정 바꿀 때\n숫자만 클릭 잘 해야함", bg="#f6f7fa", anchor="w", fg="#000000", justify="left").pack(anchor="w", pady=(2,0))
+        tk.Entry(row, width=6, textvariable=self.tol_var, justify="center", bg="white", font=BASE_FONT).pack(side="left", padx=(8,0))
+        tk.Label(tol_frame2, text="80까지 정도만 추천", bg="#f6f7fa", anchor="w", fg="#2167ce", font=SMALL_FONT).pack(anchor="w", pady=(2,0))
+        tk.Label(tol_frame2, text="배경이 투명이라 설정 바꿀 때\n숫자만 클릭 잘 해야함", bg="#f6f7fa", anchor="w", fg="#000000", font=SMALL_FONT, justify="left").pack(anchor="w", pady=(2,0))
 
         # 바인딩 변수 연결
         self.rep_x_var.trace_add('write', lambda *a: self._update_repeat_pos())
@@ -223,11 +252,7 @@ class Overlay(tk.Tk):
         elif event.keysym == 'Next':
             self._set_repeat_pos(event)
             return "break"
-        # elif event.keysym == 'Prior':
-        #     self._toggle_repeat_by_key(event)
-        #     return "break"
 
-    # ========== UI 색 등 상태 업데이트 =============
     def _update_btn_colors(self):
         if self.running:
             self.start_btn.config(bg="#dddddd", fg="#888888", state="disabled", text="Start")
@@ -499,5 +524,5 @@ class Overlay(tk.Tk):
         sys.exit()
 
 if __name__ == "__main__":
-    app = Overlay(500, 500, 700, 500)
+    app = Overlay(500, 500, 900, 600)
     app.mainloop()
